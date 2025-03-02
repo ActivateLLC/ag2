@@ -1,0 +1,26 @@
+{
+    "version": "0.2",
+    "language": "en",
+    "words": [
+        "ahrefs",
+        "agentchat",
+        "asctime",
+        "asyncio",
+        "autogen",
+        "contentful",
+        "conv",
+        "deepcopy",
+        "defaultdict",
+        "elif",
+        "isoformat",
+        "kwargs",
+        "levelname",
+        "mkdocs",
+        "mypy",
+        "pagespeed",
+        "semrush",
+        "staticmethod"
+    ],
+    "ignoreWords": [],
+    "import": []
+}

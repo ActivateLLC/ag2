@@ -58,6 +58,7 @@ The project is currently maintained by a [dynamic group of volunteers](MAINTAINE
   - [Related papers](#related-papers)
   - [Cite the project](#cite-the-project)
   - [License](#license)
+  - [Marketing Automation Agents](#marketing-automation-agents)
 
 ## Getting started
 
@@ -273,6 +274,81 @@ AG2 supports more advanced concepts to help you build your AI agent workflows. Y
 - [Retrieval Augmented Generation (RAG)](https://docs.ag2.ai/docs/user-guide/advanced-concepts/rag)
 - [Code Execution](https://docs.ag2.ai/docs/user-guide/advanced-concepts/code-execution)
 - [Tools with Secrets](https://docs.ag2.ai/docs/user-guide/advanced-concepts/tools-with-secrets)
+
+## Marketing Automation Agents
+
+AG2 now includes a suite of marketing automation agents designed to streamline SEO, content strategy, and marketing campaign management:
+
+### SEO Audit Agent
+- Performs comprehensive technical SEO audits
+- Analyzes Core Web Vitals metrics
+- Checks security configurations and mobile optimization
+- Generates detailed reports with actionable insights
+
+### Content Strategy Agent
+- Analyzes competitor content and identifies opportunities
+- Performs keyword research and gap analysis
+- Provides content optimization recommendations
+- Tracks content performance metrics
+
+### Marketing Automation Agent
+- Automates campaign scheduling across multiple platforms
+- Manages social media post scheduling
+- Sets up tracking and analytics
+- Implements automation rules for campaign optimization
+
+### Usage Example
+
+```python
+from autogen import SEOAuditAgent, ContentStrategyAgent, MarketingAutomationAgent
+
+# Initialize agents
+seo_agent = SEOAuditAgent()
+content_agent = ContentStrategyAgent()
+marketing_agent = MarketingAutomationAgent()
+
+# Run SEO audit
+audit_results = await seo_agent.run_audit(
+    url="https://example.com",
+    api_keys={
+        "google": "your_key",
+        "pagespeed": "your_key"
+    }
+)
+
+# Analyze content strategy
+content_analysis = await content_agent.analyze_content(
+    target_url="https://example.com",
+    competitors=["competitor1.com", "competitor2.com"],
+    api_keys={
+        "ahrefs": "your_key",
+        "semrush": "your_key"
+    }
+)
+
+# Schedule marketing campaign
+campaign_config = {
+    "name": "Q1 Campaign",
+    "platforms": ["facebook", "twitter"],
+    "content": [
+        {
+            "text": "Check out our latest features!",
+            "media": ["image.jpg"],
+            "schedule": "2025-03-01T12:00:00Z"
+        }
+    ]
+}
+
+campaign_results = await marketing_agent.schedule_campaign(
+    campaign_config=campaign_config,
+    platform_tokens={
+        "facebook": "your_token",
+        "twitter": "your_token"
+    }
+)
+```
+
+For more detailed documentation and examples, visit our [Marketing Automation Guide](docs/marketing_automation.md).
 
 ## Announcements
 
