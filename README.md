@@ -37,7 +37,7 @@ This is a monorepo containing the Arise Cares caregiver quality metrics and mark
 
 1. **AG2** - Multi-agent AI framework for intelligent decision-making
 2. **n8n** - Workflow automation platform (integrated via Docker)
-3. **BrowserUse** - Web automation tool for real-time monitoring and interactions
+3. **BrowserUse** - Web automation tool for real-time monitoring and interactions <!-- cspell:ignore BrowserUse -->
 
 ## Architecture
 
@@ -45,7 +45,7 @@ The platform uses a three-tier architecture:
 
 - **Intelligence Layer** (AG2): Analyzes data, makes decisions, and provides recommendations
 - **Workflow Layer** (n8n): Orchestrates processes, connects systems, and automates workflows
-- **Automation Layer** (BrowserUse): Performs real-time web tasks, monitors competitive landscape, and executes actions
+- **Automation Layer** (BrowserUse): Performs real-time web tasks, monitors competitive landscape, and executes actions <!-- cspell:ignore BrowserUse -->
 
 For a detailed architecture diagram, see the [integrations README](integrations/README.md).
 
@@ -153,9 +153,9 @@ This project is licensed under the proprietary license - see the [LICENSE](LICEN
 
 # AG2: Open-Source AgentOS for AI Agents
 
-AG2 (formerly AutoGen) is an open-source programming framework for building AI agents and facilitating cooperation among multiple agents to solve tasks. AG2 aims to streamline the development and research of agentic AI. It offers features such as agents capable of interacting with each other, facilitates the use of various large language models (LLMs) and tool use support, autonomous and human-in-the-loop workflows, and multi-agent conversation patterns.
+AG2 (formerly AutoGen) is an open-source programming framework for building AI agents and facilitating cooperation among multiple agents to solve tasks. AG2 aims to streamline the development and research of AI agents. <!-- cspell:ignore agentic --> It offers features such as agents capable of interacting with each other, facilitates the use of various large language models (LLMs) and tool use support, autonomous and human-in-the-loop workflows, and multi-agent conversation patterns.
 
-The project is currently maintained by a [dynamic group of volunteers](MAINTAINERS.md) from several organizations. Contact project administrators Chi Wang and Wu Qingyun via [support@ag2.ai](mailto:support@ag2.ai) if you are interested in becoming a maintainer.
+The project is currently maintained by a [dynamic group of volunteers](MAINTAINERS.md) from several organizations. Contact project administrators Chi Wang and Wu Qingyun via [support@ag2.ai](mailto:support@ag2.ai) if you are interested in becoming a maintainer. <!-- cspell:ignore Qingyun -->
 
 ## Table of contents
 

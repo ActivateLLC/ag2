@@ -1,0 +1,20 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "agentic",
+    "Agentic",
+    "browseruse",
+    "BrowserUse",
+    "groupchat",
+    "pyautogen",
+    "Qingyun",
+    "strptime",
+    "Opti"
+  ],
+  "ignorePaths": [
+    "node_modules/**",
+    "venv/**",
+    ".git/**"
+  ]
+}
