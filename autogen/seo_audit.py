@@ -1,7 +1,7 @@
 """SEO Audit Agent for performing technical SEO analysis."""
 
 from typing import Any, Dict, List, Optional, Union
-from .agentchat.conversable_agent import ConversableAgent
+from autogen import ConversableAgent
 from datetime import datetime, timezone
 
 class SEOAuditAgent(ConversableAgent):

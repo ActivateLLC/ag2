@@ -1,7 +1,7 @@
 """Content Strategy Agent for analyzing competitor data and identifying content gaps."""
 
 from typing import Any, Dict, List, Optional, Union
-from .agentchat.conversable_agent import ConversableAgent
+from autogen import ConversableAgent
 from datetime import datetime, timezone
 
 class ContentStrategyAgent(ConversableAgent):

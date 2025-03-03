@@ -1,0 +1,19 @@
+{
+  "name": "Caregiver Metrics Collection",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    }
+  ],
+  "connections": {},
+  "active": false,
+  "settings": {},
+  "id": "1"
+}

@@ -31,6 +31,126 @@
 AG2 was evolved from AutoGen. Fully open-sourced. We invite collaborators from all organizations to contribute.
 </p>
 
+# Arise Cares Analytics Platform
+
+This is a monorepo containing the Arise Cares caregiver quality metrics and marketing integration platform. The platform combines three powerful technologies:
+
+1. **AG2** - Multi-agent AI framework for intelligent decision-making
+2. **n8n** - Workflow automation platform (integrated via Docker)
+3. **BrowserUse** - Web automation tool for real-time monitoring and interactions
+
+## Architecture
+
+The platform uses a three-tier architecture:
+
+- **Intelligence Layer** (AG2): Analyzes data, makes decisions, and provides recommendations
+- **Workflow Layer** (n8n): Orchestrates processes, connects systems, and automates workflows
+- **Automation Layer** (BrowserUse): Performs real-time web tasks, monitors competitive landscape, and executes actions
+
+For a detailed architecture diagram, see the [integrations README](integrations/README.md).
+
+## Key Features
+
+- **Caregiver Quality Metrics**
+  - Performance tracking and peer comparison
+  - Specialty care analytics (dementia, wound care, etc.)
+  - Intervention success tracking
+  - Personalized development recommendations
+
+- **Marketing Integration**
+  - Social proof analytics
+  - Local SEO optimization
+  - Competitor analysis
+  - Automated content generation based on caregiver metrics
+
+- **Automated Workflows**
+  - SEO monitoring and improvement
+  - Caregiver evaluation and training
+  - Client feedback collection and analysis
+  - Marketing campaign optimization
+
+## Directory Structure
+
+```
+arise-cares-platform/
+├── packages/             # Shared packages and modules
+│   ├── common/           # Common utilities and types
+│   ├── config/           # Configuration management
+│   └── metrics-core/     # Core metrics processing logic
+│
+├── services/             # Core services
+│   ├── ag2-agents/       # AG2 intelligent agents
+│   ├── n8n-workflows/    # n8n workflow definitions
+│   └── browseruse-automation/ # BrowserUse automation scripts
+│
+├── integrations/         # Integration components
+│   ├── docker-compose.yml # Docker configuration for n8n
+│   ├── n8n.env           # Environment variables for n8n
+│   ├── n8n_connector.py  # API connector for n8n
+│   └── setup-n8n.sh      # Setup script for n8n
+│
+├── scripts/              # Development and deployment scripts
+│
+└── docker/               # Docker configurations
+```
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.9 or higher
+- Node.js 18 or higher
+- Docker and Docker Compose
+- pnpm package manager
+
+### Setup
+
+1. Clone the repository:
+```bash
+git clone https://github.com/activate/arise-cares-platform.git
+cd arise-cares-platform
+```
+
+2. Run the setup script:
+```bash
+node scripts/setup/setup-all.js
+```
+
+3. Configure API keys in the `.env` file
+
+4. Start n8n (using Docker):
+```bash
+cd integrations
+docker-compose up -d
+```
+
+5. Start the n8n connector:
+```bash
+python integrations/n8n_connector.py
+```
+
+6. Run AG2 agents:
+```bash
+python -m autogen.main
+```
+
+## Implementation Plan
+
+The system follows a 12-week rollout approach with four phases:
+
+1. **Preparation and Setup** (Weeks 1-2)
+2. **Initial Rollout** (Weeks 3-6)
+3. **Expansion** (Weeks 7-10)
+4. **Optimization and Expansion Planning** (Weeks 11-12)
+
+## Contributing
+
+Please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) file for guidelines on how to contribute to this project.
+
+## License
+
+This project is licensed under the proprietary license - see the [LICENSE](LICENSE) file for details.
+
 # AG2: Open-Source AgentOS for AI Agents
 
 AG2 (formerly AutoGen) is an open-source programming framework for building AI agents and facilitating cooperation among multiple agents to solve tasks. AG2 aims to streamline the development and research of agentic AI. It offers features such as agents capable of interacting with each other, facilitates the use of various large language models (LLMs) and tool use support, autonomous and human-in-the-loop workflows, and multi-agent conversation patterns.
@@ -43,6 +163,7 @@ The project is currently maintained by a [dynamic group of volunteers](MAINTAINE
   - [Table of contents](#table-of-contents)
   - [Getting started](#getting-started)
     - [Installation](#installation)
+    - [n8n Workflow Automation Integration](#n8n-workflow-automation-integration)
     - [Setup your API keys](#setup-your-api-keys)
     - [Run your first agent](#run-your-first-agent)
   - [Example applications](#example-applications)
@@ -73,6 +194,37 @@ pip install ag2[openai]
 ```
 
 Minimal dependencies are installed by default. You can install extra options based on the features you need.
+
+### n8n Workflow Automation Integration
+
+This project includes integration with [n8n](https://n8n.io), a powerful workflow automation platform that complements our caregiver analytics system. n8n provides a visual interface for creating workflows that connect our APIs, data sources, and marketing tools.
+
+#### Setting up n8n
+
+1. Make sure you have Docker installed on your system
+2. Run the setup script:
+
+```bash
+cd integrations
+./setup-n8n.sh
+```
+
+3. Start n8n:
+
+```bash
+cd integrations
+docker-compose up -d
+```
+
+4. Access the n8n editor at http://localhost:5678
+
+#### Key Features
+
+- Visual workflow builder for caregiver metrics collection and analysis
+- Automated marketing campaigns based on quality metrics
+- Integration with SEO tools, social media platforms, and CRMs
+- Scheduled reports and notifications for stakeholders
+- No-code interface for business users to create custom workflows
 
 ### Setup your API keys
 

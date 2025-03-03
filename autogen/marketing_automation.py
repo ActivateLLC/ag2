@@ -3,7 +3,7 @@
 from typing import Any, Dict, List, Optional, Union
 from datetime import datetime, timezone
 from uuid import uuid4
-from .agentchat.conversable_agent import ConversableAgent
+from autogen import ConversableAgent
 
 class MarketingAutomationAgent(ConversableAgent):
     """Agent for automating marketing tasks and campaign management.
@@ -42,80 +42,63 @@ optimize posting schedules, and track campaign performance."""
         self,
         campaign_config: Dict[str, Any],
         platform_tokens: Dict[str, str],
-        schedule_start: datetime,
-        schedule_end: Optional[datetime] = None
+        schedule_start: Optional[datetime] = None
     ) -> Dict[str, Any]:
-        """Schedule a marketing campaign across specified platforms.
+        """Schedule a marketing campaign across various platforms.
         
         Args:
             campaign_config (Dict[str, Any]): Campaign configuration including:
-                - content
-                - platforms
-                - targeting
-                - budget
-            platform_tokens (Dict[str, str]): API tokens for various platforms
-            schedule_start (datetime): Campaign start time
-            schedule_end (Optional[datetime]): Campaign end time
+                - name: Campaign name
+                - platforms: List of platforms to post on
+                - content: List of content items to post
+                - targeting: Audience targeting parameters
+                - budget: Campaign budget information
+            platform_tokens (Dict[str, str]): API tokens for each platform
+            schedule_start (Optional[datetime]): When to start scheduling posts
             
         Returns:
-            Dict[str, Any]: Campaign details including:
-                - Scheduled posts
-                - Platform configurations
-                - Tracking metrics
-                - Campaign status
+            Dict[str, Any]: Results of scheduling operation including:
+                - campaign_id: Unique ID for the campaign
+                - scheduled_posts: List of scheduled posts
+                - platforms: Platforms the campaign is scheduled for
+                - start_time: When the campaign starts
+                - end_time: When the campaign ends
+                - status: Status of the scheduling operation
         """
-        results = {
-            "campaign_id": None,
-            "timestamp": None,
-            "scheduled_posts": [],
-            "platform_configs": {},
-            "tracking_setup": {},
-            "automation_rules": [],
-            "status": "pending"
+        if schedule_start is None:
+            schedule_start = datetime.now(timezone.utc)
+            
+        campaign_id = f"campaign-{uuid4().hex[:8]}"
+        
+        # In a real implementation, this would call platform APIs
+        scheduled_posts = []
+        
+        # Process each content item
+        for content_item in campaign_config.get("content", []):
+            for post in content_item.get("posts", []):
+                platform = post.get("platform")
+                if platform in campaign_config.get("platforms", []) and platform in platform_tokens:
+                    # Simulate scheduling the post
+                    scheduled_posts.append({
+                        "id": f"post-{uuid4().hex[:8]}",
+                        "platform": platform,
+                        "content": post.get("content"),
+                        "image_url": post.get("image_url"),
+                        "scheduled_time": post.get("schedule", schedule_start.isoformat()),
+                        "status": "scheduled"
+                    })
+        
+        return {
+            "campaign_id": campaign_id,
+            "name": campaign_config.get("name"),
+            "scheduled_posts": scheduled_posts,
+            "platforms": campaign_config.get("platforms"),
+            "start_time": schedule_start.isoformat(),
+            "end_time": (schedule_start.replace(hour=schedule_start.hour + 24)).isoformat(),
+            "targeting": campaign_config.get("targeting"),
+            "budget": campaign_config.get("budget"),
+            "status": "scheduled"
         }
-        
-        try:
-            # Generate campaign ID
-            results["campaign_id"] = await self._generate_campaign_id(campaign_config)
-            
-            # Schedule posts across platforms
-            results["scheduled_posts"] = await self._schedule_posts(
-                campaign_config,
-                platform_tokens,
-                schedule_start,
-                schedule_end
-            )
-            
-            # Configure platform-specific settings
-            results["platform_configs"] = await self._configure_platforms(
-                campaign_config,
-                platform_tokens
-            )
-            
-            # Set up tracking and analytics
-            results["tracking_setup"] = await self._setup_tracking(
-                results["campaign_id"],
-                campaign_config,
-                platform_tokens
-            )
-            
-            # Configure automation rules
-            results["automation_rules"] = await self._setup_automation_rules(
-                campaign_config,
-                results["tracking_setup"]
-            )
-            
-            results["status"] = "scheduled"
-            results["timestamp"] = datetime.now(timezone.utc).isoformat()
-            
-            # Log campaign details
-            await self._log_campaign_execution(results)
-            
-        except Exception as e:
-            results["error"] = str(e)
-            results["status"] = "failed"
-        
-        return results
 
     async def _generate_campaign_id(self, campaign_config: Dict[str, Any]) -> str:
         """Generate a unique campaign identifier."""

@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # n8n - Workflow Automation
+  n8n:
+    container_name: arise-n8n
+    image: docker.n8n.io/n8nio/n8n:latest
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - N8N_EDITOR_BASE_URL=http://localhost:5678
+      - NODE_ENV=development
+      - WEBHOOK_URL=http://localhost:5678/
+      - EXECUTIONS_PROCESS=main
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=n8n
+      - GENERIC_TIMEZONE=America/Los_Angeles
+      - N8N_DIAGNOSTICS_ENABLED=true
+      - N8N_METRICS_ENABLED=true
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ../../services/n8n-workflows/workflows:/home/node/.n8n/workflows
+    depends_on:
+      - postgres
+    networks:
+      - arise-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL Database for n8n
+  postgres:
+    container_name: arise-postgres
+    image: postgres:14-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=n8n
+      - POSTGRES_PASSWORD=n8n
+      - POSTGRES_DB=n8n
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - arise-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8n"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # AG2 API and Connector
+  ag2-connector:
+    container_name: arise-ag2-connector
+    build:
+      context: ../../
+      dockerfile: docker/development/ag2-connector.Dockerfile
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - N8N_BASE_URL=http://n8n:5678
+      - FLASK_ENV=development
+    volumes:
+      - ../../:/app
+    depends_on:
+      - n8n
+    networks:
+      - arise-network
+
+networks:
+  arise-network:
+    driver: bridge
+
+volumes:
+  n8n_data:
+  postgres_data:

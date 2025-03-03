@@ -1,0 +1,29 @@
+version: '3'
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    env_file:
+      - n8n.env
+    volumes:
+      - arise_n8n_data:/home/node/.n8n
+      - /Users/activate/Dev/ag2:/home/node/arise_cares_system
+    environment:
+      - NODE_ENV=production
+      - N8N_PATH=/
+      - WEBHOOK_URL=http://localhost:5678/
+      # Add API credentials as needed for your workflows
+      # - ARISE_API_KEY=your_api_key
+    networks:
+      - arise_network
+
+volumes:
+  arise_n8n_data:
+    external: true
+
+networks:
+  arise_network:
+    driver: bridge
