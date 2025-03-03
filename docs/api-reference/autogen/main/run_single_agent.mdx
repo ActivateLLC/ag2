@@ -1,0 +1,33 @@
+---
+sidebarTitle: run_single_agent
+title: autogen.main.run_single_agent
+---
+
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>
+#### run_single_agent
+
+```python
+run_single_agent(
+    agent_type: str,
+    target_url: str,
+    competitors: List[str] = None,
+    config: Dict[str, Any] = None
+) -> Dict[str, Any]
+```
+
+    Run a single marketing agent for focused analysis.<br/>
+
+<b>Parameters:</b>
+| Name | Description |
+|--|--|
+| `agent_type` | Type of agent to run ("seo", "content", or "marketing")<br/><br/>**Type:** str |
+| `target_url` | URL to analyze<br/><br/>**Type:** str |
+| `competitors` | List of competitor URLs.<br/><br/>Defaults to None.<br/><br/>**Type:** List[str]<br/><br/>**Default:** None |
+| `config` | Configuration including API keys.<br/><br/>Defaults to None.<br/><br/>**Type:** Dict[str, Any]<br/><br/>**Default:** None |
+
+<b>Returns:</b>
+| Type | Description |
+|--|--|
+| Dict[str, Any] | Dict[str, Any]: Results from the agent analysis |
+
+<br />
