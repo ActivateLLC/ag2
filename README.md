@@ -81,7 +81,7 @@ arise-cares-platform/
 ├── services/             # Core services
 │   ├── ag2-agents/       # AG2 intelligent agents
 │   ├── n8n-workflows/    # n8n workflow definitions
-│   └── browseruse-automation/ # BrowserUse automation scripts
+│   └── browser-automation/ # Browser automation scripts
 │
 ├── integrations/         # Integration components
 │   ├── docker-compose.yml # Docker configuration for n8n
@@ -155,7 +155,7 @@ This project is licensed under the proprietary license - see the [LICENSE](LICEN
 
 AG2 (formerly AutoGen) is an open-source programming framework for building AI agents and facilitating cooperation among multiple agents to solve tasks. AG2 aims to streamline the development and research of agentic AI. It offers features such as agents capable of interacting with each other, facilitates the use of various large language models (LLMs) and tool use support, autonomous and human-in-the-loop workflows, and multi-agent conversation patterns.
 
-The project is currently maintained by a [dynamic group of volunteers](MAINTAINERS.md) from several organizations. Contact project administrators Chi Wang and Qingyun Wu via [support@ag2.ai](mailto:support@ag2.ai) if you are interested in becoming a maintainer.
+The project is currently maintained by a [dynamic group of volunteers](MAINTAINERS.md) from several organizations. Contact project administrators Chi Wang and Wu Qingyun via [support@ag2.ai](mailto:support@ag2.ai) if you are interested in becoming a maintainer.
 
 ## Table of contents
 
@@ -271,7 +271,7 @@ We have several agent concepts in AG2 to help you build your AI agents. We intro
 
 - **Conversable Agent**: Agents that are able to send messages, receive messages and generate replies using GenAI models, non-GenAI tools, or human inputs.
 - **Human in the loop**: Add human input to the conversation
-- **Orchestrating multiple agents**: Users can orchestrate multiple agents with built-in conversation patterns such as swarms, group chats, nested chats, sequential chats or customize the orchestration by registering custom reply methods.
+- **Orchestrating multiple agents**: Users can orchestrate multiple agents with built-in conversation patterns such as group chats, nested chats, sequential chats or customize the orchestration by registering custom reply methods.
 - **Tools**: Programs that can be registered, invoked and executed by agents
 - **Advanced Concepts**: AG2 supports more concepts such as structured outputs, rag, code execution, etc.
 
