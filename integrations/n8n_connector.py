@@ -20,6 +20,7 @@ import logging
 # Import the integrations
 from integration_architecture import SystemOrchestrator
 from browseruse_integration import BrowserUseAutomation
+from n8n_workflow_manager import N8nWorkflowManager
 
 # Configure logging
 logging.basicConfig(
@@ -31,61 +32,234 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 load_dotenv()
 
+# Set up environment variables
+AG2_API_URL = os.environ.get('AG2_API_URL', 'http://localhost:5001')  # Inside Docker container
+AG2_CONNECTOR_URL = 'http://localhost:5003'  # From outside Docker (for testing)
+N8N_URL = os.environ.get('N8N_URL', 'http://host.docker.internal:5678')
+N8N_API_KEY = os.environ.get('N8N_API_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3MWQ4YWNmNS0xN2Q0LTQ3OGYtYjAzOC1kOWQwY2Q1OTE5YzAiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzQxMDM5MjM5fQ.DW5iRPMotxBjVa5AGBl2IoQQ_QUKUrRrGikEajD8-PY')
+
 # Initialize Flask app
 app = Flask(__name__)
 
-# n8n API configuration
-N8N_URL = os.getenv('N8N_URL', 'http://localhost:5678')
-N8N_API_KEY = os.getenv('N8N_API_KEY', '')
+# Function to get n8n API headers
+def get_n8n_headers():
+    """Get headers for n8n API requests"""
+    headers = {
+        'Content-Type': 'application/json'
+    }
+    
+    # Add API key only if it's available and not empty
+    if N8N_API_KEY:
+        headers['X-N8N-API-KEY'] = N8N_API_KEY
+    
+    return headers
 
 # Initialize components
 orchestrator = None
 browser_automation = None
+n8n_workflow_manager = None
 
 def initialize_components():
     """Initialize the system components"""
-    global orchestrator, browser_automation
+    global orchestrator, browser_automation, n8n_workflow_manager
     
     try:
         orchestrator = SystemOrchestrator()
-        browser_automation = BrowserUseAutomation()
-        logger.info("Successfully initialized system components")
-        return True
+        logger.info("Successfully initialized SystemOrchestrator")
     except Exception as e:
-        logger.error(f"Failed to initialize components: {str(e)}")
+        logger.error(f"Failed to initialize SystemOrchestrator: {str(e)}")
+        orchestrator = None
+        
+    try:
+        browser_automation = BrowserUseAutomation()
+        logger.info("Successfully initialized BrowserUseAutomation")
+    except Exception as e:
+        logger.error(f"Failed to initialize BrowserUseAutomation: {str(e)}")
+        browser_automation = None
+        
+    try:
+        n8n_workflow_manager = N8nWorkflowManager(N8N_URL)
+        logger.info("Successfully initialized N8nWorkflowManager")
+    except Exception as e:
+        logger.error(f"Failed to initialize N8nWorkflowManager: {str(e)}")
+        n8n_workflow_manager = None
+        
+    if orchestrator and browser_automation and n8n_workflow_manager:
+        logger.info("All components initialized successfully")
+        return True
+    else:
+        logger.warning("Some components failed to initialize. Service will operate in limited mode.")
         return False
 
 # Ensure components are initialized
 if not initialize_components():
     logger.error("Failed to initialize components. Service may not function correctly.")
 
-def trigger_n8n_workflow(workflow_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+def _test_n8n_connection():
+    """Test connection to n8n API"""
+    try:
+        # Try to get workflows
+        url = f"{N8N_URL}/api/v1/workflows"
+        response = requests.get(url, headers=get_n8n_headers())
+        
+        # Check if we got a successful response
+        if response.status_code == 200:
+            return True, "Connected to n8n API successfully"
+        elif response.status_code == 401:
+            return False, "Authentication required. Your n8n instance has authentication enabled. Please set N8N_AUTH_ENABLED=false in your n8n environment or provide an API key."
+        else:
+            return False, f"Failed to connect to n8n API. Status code: {response.status_code}"
+    except Exception as e:
+        return False, f"Error connecting to n8n API: {str(e)}"
+
+@app.route('/api/n8n/trigger_workflow/<workflow_id>', methods=['POST'])
+def api_trigger_workflow(workflow_id):
     """
-    Trigger an n8n workflow via the n8n API
+    API endpoint to trigger an n8n workflow
     
     Args:
         workflow_id: The ID of the workflow to trigger
-        payload: The data to send to the workflow
         
     Returns:
-        The response from the workflow
+        JSON response with the result of the workflow execution
     """
-    headers = {
-        'Content-Type': 'application/json',
-    }
-    
-    if N8N_API_KEY:
-        headers['X-N8N-API-KEY'] = N8N_API_KEY
-    
-    url = f"{N8N_URL}/api/v1/workflows/{workflow_id}/execute"
+    try:
+        data = request.json or {}
+        result = trigger_n8n_workflow(workflow_id, data)
+        return jsonify({"status": "success", "result": result})
+    except Exception as e:
+        app.logger.error(f"Error triggering workflow: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+def trigger_n8n_workflow(workflow_id, payload=None):
+    """Trigger an n8n workflow"""
+    if not payload:
+        payload = {}
     
     try:
-        response = requests.post(url, json=payload, headers=headers)
+        # First try direct API call
+        url = f"{N8N_URL}/api/v1/workflows/{workflow_id}/execute"
+        response = requests.post(
+            url,
+            json={"data": payload},
+            headers=get_n8n_headers()
+        )
+        
+        # If direct API call fails with 401 (authentication required), try webhook URL
+        if response.status_code == 401 or response.status_code == 404:
+            app.logger.warning(f"Direct API call failed with status {response.status_code}. Trying webhook URL...")
+            
+            # Try to use webhook URL with the workflow ID as the webhook ID
+            webhook_url = f"{N8N_URL}/webhook/{workflow_id}"
+            app.logger.info(f"Trying webhook URL: {webhook_url}")
+            
+            webhook_response = requests.post(
+                webhook_url,
+                json=payload,
+                headers={'Content-Type': 'application/json'}
+            )
+            
+            if webhook_response.status_code == 200:
+                app.logger.info("Webhook trigger successful")
+                return webhook_response.json()
+            else:
+                app.logger.warning(f"Webhook trigger failed with status {webhook_response.status_code}")
+                
+                # Try with a different webhook format (n8n sometimes uses UUIDs for webhooks)
+                alt_webhook_url = f"{N8N_URL}/webhook-test/{workflow_id}"
+                app.logger.info(f"Trying alternative webhook URL: {alt_webhook_url}")
+                
+                alt_webhook_response = requests.post(
+                    alt_webhook_url,
+                    json=payload,
+                    headers={'Content-Type': 'application/json'}
+                )
+                
+                if alt_webhook_response.status_code == 200:
+                    app.logger.info("Alternative webhook trigger successful")
+                    return alt_webhook_response.json()
+                else:
+                    app.logger.error(f"All trigger methods failed for workflow {workflow_id}")
+                    return {"error": f"Failed to trigger workflow via API or webhook. Status codes: API={response.status_code}, Webhook={webhook_response.status_code}, Alt Webhook={alt_webhook_response.status_code}"}
+        
+        # If direct API call succeeds, return the result
+        if response.status_code == 200:
+            app.logger.info("Direct API call successful")
+            return response.json()
+        else:
+            app.logger.error(f"Direct API call failed with status {response.status_code}")
+            return {"error": f"Failed to trigger workflow. Status code: {response.status_code}"}
+            
+    except requests.exceptions.RequestException as e:
+        app.logger.error(f"Error triggering workflow: {str(e)}")
+        return {"error": str(e)}
+
+def create_execution_workflow(target_workflow_id, payload):
+    """Create a temporary workflow to execute another workflow"""
+    # Create a simple workflow with an HTTP request node that calls the target workflow
+    workflow_data = {
+        "name": f"Execute Workflow {target_workflow_id}",
+        "nodes": [
+            {
+                "parameters": {},
+                "name": "Start",
+                "type": "n8n-nodes-base.start",
+                "typeVersion": 1,
+                "position": [100, 300]
+            },
+            {
+                "parameters": {
+                    "url": f"{N8N_URL}/webhook/{target_workflow_id}",
+                    "options": {},
+                    "method": "POST",
+                    "bodyParametersUi": {
+                        "parameter": [
+                            {
+                                "name": "data",
+                                "value": json.dumps(payload)
+                            }
+                        ]
+                    }
+                },
+                "name": "HTTP Request",
+                "type": "n8n-nodes-base.httpRequest",
+                "typeVersion": 1,
+                "position": [300, 300]
+            }
+        ],
+        "connections": {
+            "Start": {
+                "main": [
+                    [
+                        {
+                            "node": "HTTP Request",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            }
+        },
+        "active": False
+    }
+    
+    try:
+        url = f"{N8N_URL}/api/v1/workflows"
+        response = requests.post(
+            url,
+            json=workflow_data,
+            headers=get_n8n_headers()
+        )
+        
+        if response.status_code == 401:
+            app.logger.error("Authentication required for n8n API. Cannot create execution workflow.")
+            return None
+            
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        logger.error(f"Error triggering n8n workflow {workflow_id}: {str(e)}")
-        return {"error": str(e)}
+        app.logger.error(f"Error creating execution workflow: {str(e)}")
+        return None
 
 #======================
 # AG2 Agent Endpoints
@@ -103,7 +277,10 @@ def run_seo_audit():
     # Run the AG2 agent asynchronously
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    result = loop.run_until_complete(orchestrator.seo_agent.analyze_website(target_url))
+    result = loop.run_until_complete(orchestrator.seo_agent.run_audit(
+        url=target_url,
+        api_keys={} # Empty dict for now, we'll use mock data
+    ))
     loop.close()
     
     return jsonify({"status": "success", "result": result})
@@ -118,16 +295,14 @@ def run_content_strategy():
     if not target_url:
         return jsonify({"status": "error", "message": "No target_url provided"}), 400
     
-    # Create input data for the agent
-    input_data = {
-        "target_url": target_url,
-        "competitors": competitors
-    }
-    
     # Run the AG2 agent asynchronously
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    result = loop.run_until_complete(orchestrator.content_agent.analyze_content_opportunities(input_data))
+    result = loop.run_until_complete(orchestrator.content_agent.analyze_content(
+        target_url=target_url,
+        competitors=competitors,
+        api_keys={} # Empty dict for now, we'll use mock data
+    ))
     loop.close()
     
     return jsonify({"status": "success", "result": result})
@@ -186,20 +361,16 @@ def run_caregiver_analysis():
                 "type": "training",
                 "focus": "Family Communication Strategies",
                 "priority": "high",
-                "expected_impact": "Improved family satisfaction scores by 12%"
+                "due_date": (datetime.now() + timedelta(days=30)).isoformat()
             },
             {
                 "type": "mentoring",
-                "focus": "Time Management for Home Care",
+                "focus": "Time Management",
                 "priority": "medium",
-                "expected_impact": "Increased visit efficiency by 15%"
+                "due_date": (datetime.now() + timedelta(days=45)).isoformat()
             }
         ],
-        "peer_comparison": {
-            "percentile": 73,
-            "top_metrics": ["client_satisfaction", "documentation_quality"],
-            "below_average_metrics": ["visit_timeliness"]
-        }
+        "metrics": metrics
     }
     
     return jsonify({"status": "success", "result": result})
@@ -234,7 +405,6 @@ def collect_reviews():
     """Collect business reviews using BrowserUse"""
     data = request.json
     business_name = data.get('business_name')
-    platforms = data.get('platforms', ["Google", "Yelp", "Facebook"])
     
     if not business_name:
         return jsonify({"status": "error", "message": "No business_name provided"}), 400
@@ -242,14 +412,12 @@ def collect_reviews():
     # Run BrowserUse asynchronously
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    result = loop.run_until_complete(browser_automation.collect_business_reviews(
-        business_name, platforms
-    ))
+    result = loop.run_until_complete(browser_automation.collect_business_reviews(business_name))
     loop.close()
     
     return jsonify({"status": "success", "result": result})
 
-@app.route('/api/browseruse/competitor_analysis', methods=['POST'])
+@app.route('/api/browseruse/competitor', methods=['POST'])
 def analyze_competitor():
     """Analyze competitor website using BrowserUse"""
     data = request.json
@@ -261,14 +429,12 @@ def analyze_competitor():
     # Run BrowserUse asynchronously
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    result = loop.run_until_complete(browser_automation.analyze_competitor_website(
-        competitor_url
-    ))
+    result = loop.run_until_complete(browser_automation.analyze_competitor_website(competitor_url))
     loop.close()
     
     return jsonify({"status": "success", "result": result})
 
-@app.route('/api/browseruse/update_gbp', methods=['POST'])
+@app.route('/api/browseruse/google_business', methods=['POST'])
 def update_google_business():
     """Update Google Business Profile using BrowserUse"""
     data = request.json
@@ -304,6 +470,110 @@ def post_social_content():
     result = loop.run_until_complete(browser_automation.publish_social_media_content(
         platform, content
     ))
+    loop.close()
+    
+    return jsonify({"status": "success", "result": result})
+
+#======================
+# n8n Workflow Endpoints
+#======================
+
+@app.route('/api/n8n/create_workflow/seo_audit', methods=['POST'])
+def create_seo_audit_workflow():
+    """Create an SEO audit workflow in n8n"""
+    data = request.json
+    name = data.get('name', f"SEO Audit - {datetime.now().strftime('%Y-%m-%d')}")
+    target_url = data.get('target_url', "https://arisecares.com")
+    email_recipient = data.get('email_recipient', "marketing@arisecares.com")
+    schedule = data.get('schedule', {
+        "mode": "everyWeek",
+        "weekday": 1,  # Monday
+        "hour": 9,
+        "minute": 0
+    })
+    
+    # Initialize the n8n workflow manager if needed
+    global n8n_workflow_manager
+    if not n8n_workflow_manager:
+        n8n_workflow_manager = N8nWorkflowManager(N8N_URL)
+        
+    # Run the workflow manager asynchronously
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    result = loop.run_until_complete(n8n_workflow_manager.create_weekly_seo_audit_workflow(
+        target_url=target_url,
+        email_recipient=email_recipient
+    ))
+    loop.close()
+    
+    return jsonify({"status": "success", "result": result})
+
+@app.route('/api/n8n/create_workflow/content_strategy', methods=['POST'])
+def create_content_strategy_workflow():
+    """Create a content strategy workflow in n8n"""
+    data = request.json
+    name = data.get('name', f"Content Strategy - {datetime.now().strftime('%Y-%m-%d')}")
+    target_url = data.get('target_url', "https://arisecares.com")
+    competitors = data.get('competitors', [
+        "https://homeinstead.com",
+        "https://comfortkeepers.com",
+        "https://brightstarcare.com"
+    ])
+    email_recipient = data.get('email_recipient', "content@arisecares.com")
+    
+    # Initialize the n8n workflow manager if needed
+    global n8n_workflow_manager
+    if not n8n_workflow_manager:
+        n8n_workflow_manager = N8nWorkflowManager(N8N_URL)
+        
+    # Run the workflow manager asynchronously
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    result = loop.run_until_complete(n8n_workflow_manager.create_monthly_content_strategy_workflow(
+        target_url=target_url,
+        competitors=competitors,
+        email_recipient=email_recipient
+    ))
+    loop.close()
+    
+    return jsonify({"status": "success", "result": result})
+
+@app.route('/api/n8n/create_workflow/caregiver_metrics', methods=['POST'])
+def create_caregiver_metrics_workflow():
+    """Create a caregiver metrics workflow in n8n"""
+    data = request.json
+    name = data.get('name', f"Caregiver Metrics - {datetime.now().strftime('%Y-%m-%d')}")
+    caregiver_ids = data.get('caregiver_ids')
+    metrics = data.get('metrics')
+    
+    # Initialize the n8n workflow manager if needed
+    global n8n_workflow_manager
+    if not n8n_workflow_manager:
+        n8n_workflow_manager = N8nWorkflowManager(N8N_URL)
+        
+    # Run the workflow manager asynchronously
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    result = loop.run_until_complete(n8n_workflow_manager.create_daily_caregiver_metrics_workflow(
+        caregiver_ids=caregiver_ids,
+        metrics=metrics
+    ))
+    loop.close()
+    
+    return jsonify({"status": "success", "result": result})
+
+@app.route('/api/n8n/create_all_workflows', methods=['POST'])
+def create_all_workflows():
+    """Create all standard workflows in n8n"""
+    # Initialize the n8n workflow manager if needed
+    global n8n_workflow_manager
+    if not n8n_workflow_manager:
+        n8n_workflow_manager = N8nWorkflowManager(N8N_URL)
+        
+    # Run the workflow manager asynchronously
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    result = loop.run_until_complete(n8n_workflow_manager.create_all_workflows())
     loop.close()
     
     return jsonify({"status": "success", "result": result})
@@ -370,6 +640,7 @@ def health_check():
         "components": {
             "ag2": orchestrator is not None,
             "browseruse": browser_automation is not None,
+            "n8n_workflow_manager": n8n_workflow_manager is not None,
             "n8n_connector": True
         },
         "timestamp": datetime.now().isoformat()
