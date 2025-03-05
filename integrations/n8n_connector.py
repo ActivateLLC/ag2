@@ -138,58 +138,63 @@ def trigger_n8n_workflow(workflow_id, payload=None):
     
     try:
         # First try direct API call
-        url = f"{N8N_URL}/api/v1/workflows/{workflow_id}/execute"
-        response = requests.post(
+        url = f"{N8N_URL}/api/v1/workflows/{workflow_id}/activate"
+        activate_response = requests.post(
             url,
-            json={"data": payload},
             headers=get_n8n_headers()
         )
         
+        if activate_response.status_code == 200:
+            app.logger.info(f"Successfully activated workflow {workflow_id}")
+            
+            # Now execute the workflow
+            execute_url = f"{N8N_URL}/api/v1/workflows/{workflow_id}/execute"
+            response = requests.post(
+                execute_url,
+                json=payload,
+                headers=get_n8n_headers()
+            )
+            
+            if response.status_code == 200:
+                app.logger.info("Direct API call successful")
+                return response.json()
+        
         # If direct API call fails with 401 (authentication required), try webhook URL
-        if response.status_code == 401 or response.status_code == 404:
-            app.logger.warning(f"Direct API call failed with status {response.status_code}. Trying webhook URL...")
+        app.logger.warning(f"Direct API call failed with status {activate_response.status_code}. Trying webhook URL...")
+        
+        # Try to use webhook URL with the workflow ID as the webhook ID
+        webhook_url = f"{N8N_URL}/webhook/{workflow_id}"
+        app.logger.info(f"Trying webhook URL: {webhook_url}")
+        
+        webhook_response = requests.post(
+            webhook_url,
+            json=payload,
+            headers={'Content-Type': 'application/json'}
+        )
+        
+        if webhook_response.status_code == 200:
+            app.logger.info("Webhook trigger successful")
+            return webhook_response.json()
+        else:
+            app.logger.warning(f"Webhook trigger failed with status {webhook_response.status_code}")
             
-            # Try to use webhook URL with the workflow ID as the webhook ID
-            webhook_url = f"{N8N_URL}/webhook/{workflow_id}"
-            app.logger.info(f"Trying webhook URL: {webhook_url}")
+            # Try with a different webhook format (n8n sometimes uses UUIDs for webhooks)
+            alt_webhook_url = f"{N8N_URL}/webhook-test/{workflow_id}"
+            app.logger.info(f"Trying alternative webhook URL: {alt_webhook_url}")
             
-            webhook_response = requests.post(
-                webhook_url,
+            alt_webhook_response = requests.post(
+                alt_webhook_url,
                 json=payload,
                 headers={'Content-Type': 'application/json'}
             )
             
-            if webhook_response.status_code == 200:
-                app.logger.info("Webhook trigger successful")
-                return webhook_response.json()
+            if alt_webhook_response.status_code == 200:
+                app.logger.info("Alternative webhook trigger successful")
+                return alt_webhook_response.json()
             else:
-                app.logger.warning(f"Webhook trigger failed with status {webhook_response.status_code}")
-                
-                # Try with a different webhook format (n8n sometimes uses UUIDs for webhooks)
-                alt_webhook_url = f"{N8N_URL}/webhook-test/{workflow_id}"
-                app.logger.info(f"Trying alternative webhook URL: {alt_webhook_url}")
-                
-                alt_webhook_response = requests.post(
-                    alt_webhook_url,
-                    json=payload,
-                    headers={'Content-Type': 'application/json'}
-                )
-                
-                if alt_webhook_response.status_code == 200:
-                    app.logger.info("Alternative webhook trigger successful")
-                    return alt_webhook_response.json()
-                else:
-                    app.logger.error(f"All trigger methods failed for workflow {workflow_id}")
-                    return {"error": f"Failed to trigger workflow via API or webhook. Status codes: API={response.status_code}, Webhook={webhook_response.status_code}, Alt Webhook={alt_webhook_response.status_code}"}
-        
-        # If direct API call succeeds, return the result
-        if response.status_code == 200:
-            app.logger.info("Direct API call successful")
-            return response.json()
-        else:
-            app.logger.error(f"Direct API call failed with status {response.status_code}")
-            return {"error": f"Failed to trigger workflow. Status code: {response.status_code}"}
-            
+                app.logger.error(f"All trigger methods failed for workflow {workflow_id}")
+                return {"error": f"Failed to trigger workflow via API or webhook. Status codes: API={activate_response.status_code}, Webhook={webhook_response.status_code}, Alt Webhook={alt_webhook_response.status_code}"}
+    
     except requests.exceptions.RequestException as e:
         app.logger.error(f"Error triggering workflow: {str(e)}")
         return {"error": str(e)}

@@ -94,7 +94,7 @@ optimize posting schedules, and track campaign performance."""
             "scheduled_posts": scheduled_posts,
             "platforms": campaign_config.get("platforms"),
             "start_time": schedule_start.isoformat(),
-            "end_time": (schedule_start.replace(hour=schedule_start.hour + 24)).isoformat(),
+            "end_time": (schedule_start.replace(day=schedule_start.day + 1)).isoformat(),
             "targeting": campaign_config.get("targeting"),
             "budget": campaign_config.get("budget"),
             "status": "scheduled"
